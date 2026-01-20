@@ -1,0 +1,1 @@
+# Appointment entity, Status enums

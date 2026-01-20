@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-Marshmallow
+psycopg2-binary
+PyJWT
+pytest
+boto3

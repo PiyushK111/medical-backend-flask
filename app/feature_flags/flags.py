@@ -1,0 +1,1 @@
+# Flag definitions (enum/constants)
