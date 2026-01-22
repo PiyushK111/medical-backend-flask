@@ -6,3 +6,4 @@ PyJWT
 pytest
 boto3
 marshmallow-sqlalchemy
+Flask-Migrate
