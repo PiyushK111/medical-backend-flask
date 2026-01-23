@@ -7,3 +7,5 @@ pytest
 boto3
 marshmallow-sqlalchemy
 Flask-Migrate
+flask-swagger-ui
+python-dotenv

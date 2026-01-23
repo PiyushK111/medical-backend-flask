@@ -74,3 +74,9 @@ class User(TimestampMixin, db.Model):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat()
         }
+
+    availabilities: Mapped[List["DoctorAvailability"]] = relationship(
+        "DoctorAvailability",
+        back_populates="doctor",
+        cascade="all, delete-orphan"
+    )
