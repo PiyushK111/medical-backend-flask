@@ -4,9 +4,11 @@ from app.schemas.department_schema import DepartmentSchema
 from app.schemas.doctor_schema import DoctorOnboardSchema, DoctorAssignmentSchema
 from app.security.decorators import token_required, roles_required
 from marshmallow import ValidationError
+import logging
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 admin_service = AdminService()
+logger = logging.getLogger(__name__)
 
 @admin_bp.route('/departments', methods=['POST'])
 @token_required

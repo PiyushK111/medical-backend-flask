@@ -4,11 +4,14 @@ from app.services.availability_service import AvailabilityService
 from app.schemas.availability_schema import DoctorAvailabilitySchema
 from app.security.decorators import token_required, roles_required
 from app.models.user import UserRole
+import logging
 
 availability_bp = Blueprint('availability', __name__, url_prefix='/api/availability')
 availability_service = AvailabilityService()
 availability_schema = DoctorAvailabilitySchema()
 availabilities_schema = DoctorAvailabilitySchema(many=True)
+
+logger = logging.getLogger(__name__)
 
 @availability_bp.route('', methods=['POST'])
 @token_required
@@ -29,7 +32,8 @@ def create_or_update_availability():
     except ValidationError as err:
         return jsonify(err.messages), 400
     except Exception as e:
-        return jsonify({"message": str(e)}), 500
+        logger.error(f"Error creating availability for doctor {g.user_id}: {str(e)}")
+        return jsonify({"message": "Internal Server Error"}), 500
 
 @availability_bp.route('/<int:doctor_id>', methods=['GET'])
 @token_required
