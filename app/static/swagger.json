@@ -98,6 +98,140 @@
                 }
             }
         },
+        "/api/availability": {
+            "post": {
+                "summary": "Create or update doctor availability (Doctor only)",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "day_of_week": {
+                                    "type": "integer",
+                                    "description": "0=Mon, 6=Sun"
+                                },
+                                "start_time": {
+                                    "type": "string",
+                                    "example": "09:00"
+                                },
+                                "end_time": {
+                                    "type": "string",
+                                    "example": "17:00"
+                                },
+                                "slot_duration_minutes": {
+                                    "type": "integer",
+                                    "default": 30
+                                },
+                                "is_active": {
+                                    "type": "boolean",
+                                    "default": true
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Availability updated"
+                    },
+                    "403": {
+                        "description": "Only doctors can set availability"
+                    }
+                }
+            }
+        },
+        "/api/availability/{doctor_id}": {
+            "get": {
+                "summary": "Get availability for a specific doctor",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "doctor_id",
+                        "in": "path",
+                        "required": true,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of availabilities"
+                    }
+                }
+            }
+        },
+        "/api/appointments": {
+            "post": {
+                "summary": "Book an appointment (Member only)",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "doctor_id": {
+                                    "type": "integer"
+                                },
+                                "date": {
+                                    "type": "string",
+                                    "format": "date",
+                                    "example": "2024-01-30"
+                                },
+                                "start_time": {
+                                    "type": "string",
+                                    "example": "09:00"
+                                },
+                                "reason": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Appointment booked"
+                    },
+                    "409": {
+                        "description": "Conflict (already booked or double booking)"
+                    },
+                    "400": {
+                        "description": "Validation error or doctor unavailable"
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get appointments for current user",
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of appointments"
+                    }
+                }
+            }
+        },
         "/admin/departments": {
             "get": {
                 "summary": "List all departments",
@@ -141,9 +275,6 @@
                     "201": {
                         "description": "Department created"
                     },
-                    "409": {
-                        "description": "Department already exists"
-                    },
                     "403": {
                         "description": "Permission denied"
                     }
@@ -182,9 +313,6 @@
                 "responses": {
                     "201": {
                         "description": "Doctor onboarded"
-                    },
-                    "409": {
-                        "description": "Doctor already exists"
                     }
                 }
             }
@@ -218,9 +346,6 @@
                 "responses": {
                     "200": {
                         "description": "Assignment successful"
-                    },
-                    "400": {
-                        "description": "Invalid ID"
                     }
                 }
             }

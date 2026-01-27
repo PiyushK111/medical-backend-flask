@@ -1,41 +1,27 @@
 
 from typing import TYPE_CHECKING
-
 from sqlalchemy import String, Boolean, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import db, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.department import Department
 
-
 class DoctorDepartment(TimestampMixin, db.Model):
-    """
-    Association table linking doctors to departments.
-
-    A doctor can belong to multiple departments.
-    """
-
+    """Association table linking doctors to departments."""
     __tablename__ = "doctor_departments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     doctor_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     department_id: Mapped[int] = mapped_column(Integer, ForeignKey("departments.id"), nullable=False)
 
-    # Relationships
     doctor: Mapped["User"] = relationship("User")
     department: Mapped["Department"] = relationship("Department", back_populates="doctor_assignments")
 
 
 class DoctorAvailability(TimestampMixin, db.Model):
-    """
-    Doctor's available time slots.
-
-    Each record represents a time period when the doctor is available.
-    """
-
+    """Doctor's available time slots."""
     __tablename__ = "doctor_availabilities"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -46,14 +32,12 @@ class DoctorAvailability(TimestampMixin, db.Model):
     slot_duration_minutes: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    # Relationships
     doctor: Mapped["User"] = relationship("User", back_populates="availabilities")
 
     def __repr__(self) -> str:
         return f"<Availability Doctor:{self.doctor_id} Day:{self.day_of_week}>"
 
     def to_dict(self) -> dict:
-        """Convert model to dictionary for API responses."""
         days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         return {
             "id": self.id,

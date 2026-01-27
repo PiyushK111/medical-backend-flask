@@ -44,8 +44,12 @@ def create_app():
     # Register Blueprints
     from app.controllers.auth_controller import auth_bp
     from app.controllers.admin_controller import admin_bp
+    from app.controllers.availability_controller import availability_bp
+    from app.controllers.appointment_controller import appointment_bp
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(admin_bp)
+    flask_app.register_blueprint(availability_bp)
+    flask_app.register_blueprint(appointment_bp)
 
     # Global Error Handler
     @flask_app.errorhandler(Exception)
@@ -60,9 +64,7 @@ def create_app():
     with flask_app.app_context():
         # Import models to ensure they are registered with SQLAlchemy
         from app import models
-        
-        # Create tables
-        db.create_all()
+
 
     @flask_app.route('/')
     def index():
