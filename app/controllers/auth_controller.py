@@ -2,9 +2,11 @@ from flask import Blueprint, request, jsonify
 from app.services.auth_service import AuthService
 from app.schemas.auth_schema import LoginSchema, RegisterSchema
 from marshmallow import ValidationError
+import logging
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 auth_service = AuthService()
+logger = logging.getLogger(__name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
