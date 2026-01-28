@@ -1,41 +1,68 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 from app.services.auth_service import AuthService
 from app.schemas.auth_schema import LoginSchema, RegisterSchema
+from app.utils.response import success_response, error_response, validation_error_handler
 from marshmallow import ValidationError
 import logging
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 auth_service = AuthService()
 logger = logging.getLogger(__name__)
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/registerUser', methods=['POST'])
 def register():
-    json_data = request.json
-    if not json_data:
-        return jsonify({'message': 'No input data provided'}), 400
+    """
+    Register a new user (patient).
     
+    Expected constraints:
+    - Email must be unique
+    - Password requirements met by schema
+    """
     try:
+        json_data = request.json or {}
         data = RegisterSchema().load(json_data)
+        
+        success, message, user = auth_service.register_user(data)
+        if success:
+            logger.info(f"User registered successfully: {user.id}")
+            return success_response(
+                data={'user_id': user.id}, 
+                message=message, 
+                status_code=201
+            )
+        
+        logger.warning(f"Registration failed: {message}")
+        return error_response(message=message, status_code=409)
+
     except ValidationError as err:
-        return jsonify(err.messages), 422
+        return validation_error_handler(err)
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {str(e)}")
+        return error_response(message="Internal Server Error", status_code=500)
 
-    success, message, user = auth_service.register_user(data)
-    if success:
-        return jsonify({'message': message, 'user_id': user.id}), 201
-    return jsonify({'message': message}), 409
-
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/loginUser', methods=['POST'])
 def login():
-    json_data = request.json
-    if not json_data:
-        return jsonify({'message': 'No input data provided'}), 400
-
+    """
+    Authenticate user and return JWT token.
+    """
     try:
+        json_data = request.json or {}
         data = LoginSchema().load(json_data)
-    except ValidationError as err:
-        return jsonify(err.messages), 422
 
-    success, message, token = auth_service.login_user(data)
-    if success:
-        return jsonify({'message': message, 'token': token}), 200
-    return jsonify({'message': message}), 401
+        success, message, token = auth_service.login_user(data)
+        if success:
+            logger.info(f"User logged in successfully")
+            return success_response(
+                data={'token': token},
+                message=message,
+                status_code=200
+            )
+        
+        logger.warning(f"Login failed: {message}")
+        return error_response(message=message, status_code=401)
+
+    except ValidationError as err:
+        return validation_error_handler(err)
+    except Exception as e:
+        logger.error(f"Unexpected error during login: {str(e)}")
+        return error_response(message="Internal Server Error", status_code=500)

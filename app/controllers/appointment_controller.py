@@ -1,10 +1,11 @@
-from flask import Blueprint, request, jsonify, g # Correction
+from flask import Blueprint, request, g
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from app.services.appointment_service import AppointmentService
 from app.schemas.appointment_schema import AppointmentSchema
 from app.security.decorators import token_required, roles_required
 from app.models.user import UserRole
+from app.utils.response import success_response, error_response, validation_error_handler
 import logging
 
 appointment_bp = Blueprint('appointments', __name__, url_prefix='/api/appointments')
@@ -14,7 +15,7 @@ appointments_schema = AppointmentSchema(many=True)
 
 logger = logging.getLogger(__name__)
 
-@appointment_bp.route('', methods=['POST'])
+@appointment_bp.route('/bookAppointment', methods=['POST'])
 @token_required
 @roles_required(UserRole.MEMBER.value)
 def book_appointment():
@@ -23,28 +24,32 @@ def book_appointment():
     Only Members can book appointments.
     """
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         validated_data = appointment_schema.load(data)
         
         patient_id = g.user_id # From token
         appointment = appointment_service.book_appointment(patient_id, validated_data)
         
-        return jsonify(appointment_schema.dump(appointment)), 201
+        logger.info(f"Appointment booked for user {patient_id}")
+        return success_response(
+            data=appointment_schema.dump(appointment),
+            message="Appointment booked successfully",
+            status_code=201
+        )
 
     except ValidationError as err:
-        return jsonify(err.messages), 400
+        return validation_error_handler(err)
     except ValueError as e:
         logger.warning(f"Booking Conflict/Error for user {g.user_id}: {str(e)}")
-        # Check if it's a conflict or bad request based on message? 
-        return jsonify({"message": str(e)}), 409 # Conflict/Logic Error
+        return error_response(message=str(e), status_code=409)
     except IntegrityError:
         logger.error(f"Database Integrity Error for user {g.user_id}")
-        return jsonify({"message": "Appointment slot already taken."}), 409
+        return error_response(message="Appointment slot already taken", status_code=409)
     except Exception as e:
         logger.error(f"System Error: {str(e)}")
-        return jsonify({"message": "Internal Server Error"}), 500
+        return error_response(message="Internal Server Error", status_code=500)
 
-@appointment_bp.route('', methods=['GET'])
+@appointment_bp.route('/getUserAppointments', methods=['GET'])
 @token_required
 def get_appointments():
     """
@@ -53,8 +58,16 @@ def get_appointments():
     - Doctors see theirs.
     - Members see theirs.
     """
-    user_id = g.user_id
-    role = g.role
-    
-    appointments = appointment_service.get_appointments_for_user(user_id, role)
-    return jsonify(appointments_schema.dump(appointments)), 200
+    try:
+        user_id = g.user_id
+        role = g.role
+        
+        appointments = appointment_service.get_appointments_for_user(user_id, role)
+        return success_response(
+            data=appointments_schema.dump(appointments),
+            message="Appointments retrieved successfully",
+            status_code=200
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving appointments for user {g.user_id}: {str(e)}")
+        return error_response(message="Internal Server Error", status_code=500)

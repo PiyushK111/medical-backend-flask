@@ -4,22 +4,44 @@ from typing import List, Dict, Any
 from app.models.appointment import Appointment, AppointmentStatus
 from app.repositories.appointment_repository import AppointmentRepository
 from app.repositories.availability_repository import AvailabilityRepository
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AppointmentService:
+    """
+    Service for managing appointment bookings and retrieval.
+    """
     def __init__(self):
         self.appt_repo = AppointmentRepository()
         self.avail_repo = AvailabilityRepository()
 
     def book_appointment(self, patient_id: int, data: Dict[str, Any]) -> Appointment:
+        """
+        Books an appointment for a patient.
+        
+        Args:
+            patient_id (int): ID of the patient
+            data (dict): Appointment details (doctor_id, date, start_time, reason)
+            
+        Returns:
+            Appointment: The booked appointment object
+            
+        Raises:
+            ValueError: If there are business logic conflicts (availability, double booking)
+        """
         doctor_id = data['doctor_id']
         appt_date = data['date'] # datetime.date object from marshmallow
         start_time = data['start_time'] # datetime.time object
         
+        logger.debug(f"Attempting to book appointment: Doctor {doctor_id}, Date {appt_date}, Time {start_time}")
+
         # 1. Check Doctor Availability
         day_of_week = appt_date.weekday()
         availability = self.avail_repo.find_by_doctor_and_day(doctor_id, day_of_week)
         
         if not availability or not availability.is_active:
+             logger.warning(f"Booking failed: Doctor {doctor_id} not available on {appt_date}")
              raise ValueError("Doctor is not available on this day.")
 
         # Check time window
@@ -42,6 +64,7 @@ class AppointmentService:
         # 2. Check for Double Booking (Database Level Pre-check)
         conflict = self.appt_repo.find_conflicting_appointment(doctor_id, appt_date, start_time)
         if conflict:
+            logger.warning(f"Booking failed: Slot conflict detected for Doctor {doctor_id} at {start_time}")
             raise ValueError("Doctor is already booked for this slot.")
 
         # 3. Create Appointment
@@ -55,9 +78,14 @@ class AppointmentService:
             reason=data.get('reason')
         )
         
-        return self.appt_repo.create(appointment)
+        created_appt = self.appt_repo.create(appointment)
+        logger.info(f"Appointment booked: ID {created_appt.id}")
+        return created_appt
 
     def get_appointments_for_user(self, user_id: int, role: str) -> List[Appointment]:
+        """
+        Retrieves appointments based on user role.
+        """
         if role == 'admin':
             return self.appt_repo.find_all()
         elif role == 'doctor':
